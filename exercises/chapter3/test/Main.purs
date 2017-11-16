@@ -3,9 +3,12 @@ module Test.Main where
 import Prelude
 
 import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Console (CONSOLE, logShow)
-import Data.AddressBook (AddressBook, Entry, emptyBook, insertEntry, findEntry, showEntry)
-import Data.Maybe (Maybe)
+import Data.AddressBook (Entry, emptyBook, insertEntry, findEntry, showEntry)
+import Data.Maybe (Maybe(Nothing, Just))
+import Test.Spec (it)
+import Test.Spec.Assertions (shouldEqual)
+import Test.Spec.Reporter.Console (consoleReporter)
+import Test.Spec.Runner (RunnerEffects, run)
 
 example :: Entry
 example =
@@ -17,15 +20,14 @@ example =
              }
   }
 
-book0 :: AddressBook
-book0 = emptyBook
+main :: Eff (RunnerEffects ()) Unit
+main = run [consoleReporter] do
+  it "should find nothing" do
+    let entry = findEntry "John" "Smith" emptyBook 
+    (showEntry <$> entry) `shouldEqual` Nothing
 
-printEntry :: String -> String -> AddressBook -> Maybe String
-printEntry firstName lastName book = showEntry <$> findEntry firstName lastName book
-
-main :: Eff (console :: CONSOLE) Unit
-main = do
-  let book1 = insertEntry example emptyBook
-
-  logShow $ printEntry "John" "Smith" book0
-  logShow $ printEntry "John" "Smith" book1
+  it "should find entry" do
+    let book = insertEntry example emptyBook
+    let entry = findEntry "John" "Smith" book
+    (showEntry <$> entry) `shouldEqual` (Just "Smith, John: 123 Fake St., Faketown, CA")
+    
