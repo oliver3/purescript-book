@@ -16,6 +16,15 @@ nonEmpty :: String -> String -> V Errors Unit
 nonEmpty field "" = invalid ["Field '" <> field <> "' cannot be empty"]
 nonEmpty _     _  = pure unit
 
+notOnlySpacesRegex :: Regex
+notOnlySpacesRegex =
+  unsafePartial
+    case regex "\\S+" noFlags of
+      Right r -> r
+
+notOnlySpaces :: String -> String -> V Errors Unit
+notOnlySpaces field = matches field notOnlySpacesRegex
+
 arrayNonEmpty :: forall a. String -> Array a -> V Errors Unit
 arrayNonEmpty field [] = invalid ["Field '" <> field <> "' must contain at least one value"]
 arrayNonEmpty _     _  = pure unit
@@ -36,19 +45,29 @@ matches field _     _     = invalid ["Field '" <> field <> "' did not match the 
 
 validateAddress :: Address -> V Errors Address
 validateAddress (Address o) =
-  address <$> (nonEmpty "Street" o.street *> pure o.street)
-          <*> (nonEmpty "City"   o.city   *> pure o.city)
-          <*> (lengthIs "State" 2 o.state *> pure o.state)
+  address <$> (notOnlySpaces "Street" o.street *> pure o.street)
+          <*> (notOnlySpaces "City"   o.city   *> pure o.city)
+          <*> (validateState o.state *> pure o.state)
 
 validatePhoneNumber :: PhoneNumber -> V Errors PhoneNumber
 validatePhoneNumber (PhoneNumber o) =
   phoneNumber <$> pure o."type"
               <*> (matches "Number" phoneNumberRegex o.number *> pure o.number)
 
+stateRegex :: Regex
+stateRegex =
+  unsafePartial
+    case regex "^[A-Z]{2}$" noFlags of
+      Right r -> r
+
+validateState :: String -> V Errors Unit
+validateState (state) =
+  matches "State" stateRegex state
+
 validatePerson :: Person -> V Errors Person
 validatePerson (Person o) =
-  person <$> (nonEmpty "First Name" o.firstName *> pure o.firstName)
-         <*> (nonEmpty "Last Name"  o.lastName  *> pure o.lastName)
+  person <$> (notOnlySpaces "First Name" o.firstName *> pure o.firstName)
+         <*> (notOnlySpaces "Last Name"  o.lastName  *> pure o.lastName)
          <*> validateAddress o.homeAddress
          <*> (arrayNonEmpty "Phone Numbers" o.phones *> traverse validatePhoneNumber o.phones)
 
