@@ -35,7 +35,7 @@ render count ctx = void do
 
     _ <- translate { translateX: 300.0, translateY:  300.0 } ctx
     _ <- rotate (toNumber count * Math.pi / 18.0) ctx
-    _ <- scale { scaleX: scaleX, scaleY: scaleY } ctx
+    _ <- scale { scaleX, scaleY } ctx
     _ <- translate { translateX: -100.0, translateY: -100.0 } ctx
 
     fillPath ctx $ rect ctx
@@ -56,11 +56,11 @@ main = void $ unsafePartial do
 
   clickCount <- newRef 0
 
-  render 0 ctx
+  _ <- render 0 ctx
 
   node <- querySelector "#canvas"
   for_ node $ addEventListener "click" $ void do
     log "Mouse clicked!"
-    modifyRef clickCount \count -> count + 1
+    modifyRef clickCount (_ + 1)
     count <- readRef clickCount
     render count ctx

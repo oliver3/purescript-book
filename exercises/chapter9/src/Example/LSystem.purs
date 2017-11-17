@@ -6,7 +6,7 @@ import Data.Maybe (Maybe(..))
 import Data.Array (concatMap, foldM)
 import Control.Monad.Eff (Eff)
 import Graphics.Canvas (CANVAS, strokePath, setStrokeStyle, lineTo, moveTo,
-                        getContext2D, getCanvasElementById)
+                        getContext2D, getCanvasElementById, closePath, setFillStyle)
 import Math as Math
 import Partial.Unsafe (unsafePartial)
 
@@ -58,6 +58,13 @@ main = void $ unsafePartial do
     initialState :: State
     initialState = { x: 120.0, y: 200.0, theta: 0.0 }
 
-  _ <- setStrokeStyle "#000000" ctx
+  _ <- setStrokeStyle "#333333" ctx
+  _ <- setFillStyle "#FF0000" ctx
 
-  strokePath ctx $ lsystem initial productions interpret 5 initialState
+  strokePath ctx $ do
+    _ <- lsystem initial productions interpret 5 initialState
+    closePath ctx
+
+  -- fillPath ctx $ do
+  --   _ <- pure path
+  --   closePath ctx
