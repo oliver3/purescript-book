@@ -1,11 +1,12 @@
 module Test.Main where
 
+import Exercises
 import Prelude
 
 import Control.Monad.Eff (Eff)
 import Control.Monad.State (execState, runState)
+import Data.String (joinWith)
 import Data.Tuple (Tuple(..))
-import Exercises (balanseParens, sumArray, testParens)
 import Test.Spec (it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter.Console (consoleReporter)
@@ -49,3 +50,21 @@ main = run [consoleReporter] do
 
   it "should detect too many opening" do
     (testParens "(()()") `shouldEqual` false
+
+  it "should render the doc" do
+    let
+      expected = joinWith "\n"
+        [ "Here is some indented text:"
+        , "  I am indented"
+        , "  So am I"
+        , "    I am even more indented"
+        ]
+      actual = render $ cat
+        [ line "Here is some indented text:"
+        , indent $ cat
+          [ line "I am indented"
+          , line "So am I"
+          , indent $ line "I am even more indented"
+          ]
+        ]
+    actual `shouldEqual` expected

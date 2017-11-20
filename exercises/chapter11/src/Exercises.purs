@@ -2,13 +2,15 @@ module Exercises where
 
 import Prelude
 
+import Control.Monad.Reader (Reader, ask, local, runReader)
 import Control.Monad.State (State, execState, get)
 import Control.Monad.State.Class (modify)
 import Data.Foldable (traverse_)
-import Data.String (toCharArray)
+import Data.String (joinWith, toCharArray)
+import Data.Traversable (sequence)
 
 sumArray :: Array Int -> State Int String
-sumArray a = do 
+sumArray a = do
 --   traverse_ (\n -> modify \sum -> sum + n) a
 --   traverse_ (\n -> modify ((+) n)) a
   traverse_ (\n -> modify ((+) n)) a
@@ -33,16 +35,25 @@ balanseParens = toCharArray >>> traverse_ (case _ of
 testParens :: String -> Boolean
 testParens s = (execState (balanseParens s) 0) == 0
 
--- type Level = Int
--- type Doc = Reader Level String
+-- Reader
 
--- line :: String -> Doc
--- line s = do
---   _ <- ask
---   pure s
+type Level = Int
+type Doc = Reader Level String
 
--- indent :: Doc -> Doc
--- indent = local (_ + 2)
+line :: String -> Doc
+line s = do
+  level <- ask
+  pure (leftpad level s)
+  where
+    leftpad :: Int -> String -> String
+    leftpad 0 s = s
+    leftpad i s = leftpad (i - 1) (" " <> s)
 
--- cat :: Array Doc -> Doc
--- cat a = sequence a
+indent :: Doc -> Doc
+indent = local (add 2)
+
+cat :: Array Doc -> Doc
+cat = sequence >>> map (joinWith "\n")
+
+render :: Doc -> String
+render doc = runReader doc 0
