@@ -5,6 +5,9 @@ import Prelude
 
 import Control.Monad.Eff (Eff)
 import Control.Monad.State (execState, runState)
+import Control.Monad.Writer (execWriter, runWriter)
+import Data.Monoid.Additive (Additive(..))
+import Data.Newtype (unwrap)
 import Data.String (joinWith)
 import Data.Tuple (Tuple(..))
 import Test.Spec (it)
@@ -68,3 +71,19 @@ main = run [consoleReporter] do
           ]
         ]
     actual `shouldEqual` expected
+
+  it "should add with Writer" do
+    execWriter (sumArray' [1, 2, 3, 4]) `shouldEqual` Additive 10
+
+  it "should calculate collatz 1" do
+    collatz 1 `shouldEqual` 0
+
+  it "should calculate collatz 10" do
+    collatz 10 `shouldEqual` 6
+
+  it "should calculate with Writer collatz 1" do
+    runWriter (collatz' 1) `shouldEqual` (Tuple 0 [1])
+
+  it "should calculate with Writer collatz 10" do
+    runWriter (collatz' 10) `shouldEqual` (Tuple 6 [10, 5, 16, 8, 4, 2, 1])
+
