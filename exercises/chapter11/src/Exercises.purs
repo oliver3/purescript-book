@@ -2,15 +2,21 @@ module Exercises where
 
 import Prelude
 
+import Control.Monad.Except (ExceptT(..), lift, runExceptT, throwError)
 import Control.Monad.Reader (Reader, ask, local, runReader)
-import Control.Monad.State (State, execState, get)
+import Control.Monad.State (State, StateT(..), execState, get, put, runStateT)
 import Control.Monad.State.Class (modify)
-import Control.Monad.Writer (Writer, tell)
+import Control.Monad.Writer (Writer, WriterT(..), runWriterT, tell)
+import Data.Either (Either)
 import Data.Foldable (traverse_)
+import Data.Identity (Identity(..))
 import Data.Int (even)
+import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive(..))
-import Data.String (joinWith, toCharArray)
+import Data.Newtype (unwrap)
+import Data.String (Pattern(..), drop, joinWith, stripPrefix, take, toCharArray)
 import Data.Traversable (sequence)
+import Data.Tuple (Tuple(..))
 
 sumArray :: Array Int -> State Int String
 sumArray a = do
@@ -79,4 +85,42 @@ collatz' n = go 0 n
       if n == 1
         then pure i
         else go (i + 1) (if even n then n / 2 else 3 * n + 1)
+
+-- Transformers
+
+safeDivide :: Number -> Number -> ExceptT String Identity Number
+safeDivide x 0.0 = throwError "#DIV/0!"
+safeDivide x y = pure (x / y)
+
+type Errors = Array String
+type Log = Array String
+type Parser = StateT String (WriterT Log (ExceptT Errors Identity))
+
+runParser :: Parser String -> String -> Either Errors (Tuple (Tuple String String) Log)
+runParser p s = unwrap $ runExceptT $ runWriterT $ runStateT p s
+
+split :: Parser String
+split = do
+  s <- get
+  lift $ tell ["The state is " <> s]
+  case s of
+    "" -> lift $ lift $ throwError ["Empty string"]
+    _ -> do
+      put (drop 1 s)
+      pure (take 1 s)
+
+string :: String -> Parser String
+string prefix = do
+  s <- get
+  lift $ tell ["The state is " <> s]
+  case s of
+    "" -> lift $ lift $ throwError ["Empty string"]
+    _ -> do
+      case stripPrefix (Pattern prefix) s of
+        Just remainder -> do
+          put remainder
+          pure prefix
+        Nothing ->
+          lift $ lift $ throwError ["String does not start with prefix"]
+
 
