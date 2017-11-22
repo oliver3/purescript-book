@@ -3,10 +3,12 @@ module Test.Main where
 import Exercises
 import Prelude
 
+import Control.Alt ((<|>))
 import Control.Monad.Eff (Eff)
 import Control.Monad.Except (runExceptT)
 import Control.Monad.State (execState, runState)
 import Control.Monad.Writer (execWriter, runWriter)
+import Data.Array (many, some)
 import Data.Either (Either(..))
 import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (unwrap)
@@ -116,3 +118,52 @@ main = run [consoleReporter] do
      runParser (string "xyz") "abcdef" `shouldEqual`
        (Left ["String does not start with prefix"])
 
+  it "should many split" do
+    runParser (many split) "test" `shouldEqual`
+      (Right (Tuple (Tuple ["t", "e", "s", "t"] "")
+        [ "The state is test"
+        , "The state is est"
+        , "The state is st"
+        , "The state is t"
+        ]))
+
+  it "should many string" do
+    runParser (many (string "a")) "aabbcc" `shouldEqual`
+      (Right (Tuple (Tuple ["a", "a"] "bbcc")
+        [ "The state is aabbcc"
+        , "The state is abbcc"
+        ]))
+
+  it "should many a many b string" do
+    let parser = (many (some (string "a") <|> some (string "b")))
+    runParser parser "aabbcc" `shouldEqual`
+      (Right (Tuple (Tuple [["a", "a"], ["b", "b"]] "cc")
+        [ "The state is aabbcc"
+        , "The state is abbcc"
+        , "The state is bbcc"
+        , "The state is bcc"
+        ]))
+
+  it "should char x" do
+    runParser (char 'x') "xyz" `shouldEqual`
+      (Right (Tuple (Tuple "x" "yz")
+        [ "The state is xyz"
+        ]))
+
+  it "should not char y" do
+    runParser (char 'y') "xyz" `shouldEqual`
+      (Left ["String does not start with char"])
+
+  it "should not char x with empty string" do
+    runParser (char 'x') "" `shouldEqual`
+      (Left ["String does not start with char"])
+
+  it "should parse a's and b's" do
+    let parser = many (char 'a' <|> char 'b')
+    runParser parser "abbacddc" `shouldEqual`
+      (Right (Tuple (Tuple ["a", "b", "b", "a"] "cddc")
+        [ "The state is abbacddc"
+        , "The state is bbacddc"
+        , "The state is bacddc"
+        , "The state is acddc"
+        ]))

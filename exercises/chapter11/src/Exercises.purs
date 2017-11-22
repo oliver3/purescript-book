@@ -1,5 +1,6 @@
 module Exercises where
 
+import Control.Alternative
 import Prelude
 
 import Control.Monad.Except (ExceptT(..), lift, runExceptT, throwError)
@@ -14,7 +15,7 @@ import Data.Int (even)
 import Data.Maybe (Maybe(..))
 import Data.Monoid.Additive (Additive(..))
 import Data.Newtype (unwrap)
-import Data.String (Pattern(..), drop, joinWith, stripPrefix, take, toCharArray)
+import Data.String (Pattern(..), charAt, drop, joinWith, stripPrefix, take, toCharArray)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..))
 
@@ -96,7 +97,7 @@ type Errors = Array String
 type Log = Array String
 type Parser = StateT String (WriterT Log (ExceptT Errors Identity))
 
-runParser :: Parser String -> String -> Either Errors (Tuple (Tuple String String) Log)
+runParser :: forall a. Parser a -> String -> Either Errors (Tuple (Tuple a String) Log)
 runParser p s = unwrap $ runExceptT $ runWriterT $ runStateT p s
 
 split :: Parser String
@@ -104,7 +105,7 @@ split = do
   s <- get
   lift $ tell ["The state is " <> s]
   case s of
-    "" -> lift $ lift $ throwError ["Empty string"]
+    "" -> throwError ["Empty string"]
     _ -> do
       put (drop 1 s)
       pure (take 1 s)
@@ -112,15 +113,24 @@ split = do
 string :: String -> Parser String
 string prefix = do
   s <- get
-  lift $ tell ["The state is " <> s]
+  tell ["The state is " <> s]
   case s of
-    "" -> lift $ lift $ throwError ["Empty string"]
+    "" -> throwError ["Empty string"]
     _ -> do
       case stripPrefix (Pattern prefix) s of
         Just remainder -> do
           put remainder
           pure prefix
         Nothing ->
-          lift $ lift $ throwError ["String does not start with prefix"]
+          throwError ["String does not start with prefix"]
 
-
+char :: Char -> Parser String
+char c = do
+  s <- get
+  tell ["The state is " <> s]
+  if charAt 0 s == Just c
+    then do
+      put (drop 1 s)
+      pure (take 1 s)
+    else
+      throwError ["String does not start with char"]
